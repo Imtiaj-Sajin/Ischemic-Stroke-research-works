@@ -1,0 +1,106 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Raw dataset — iSLEEPS PSG recordings.
+# ~7.3 GB of EDF; individual files exceed GitHub's 100 MB limit. Re-downloadable
+# from Zenodo, so it is never committed. See dataset/README.md for how to fetch it.
+# ─────────────────────────────────────────────────────────────────────────────
+# (pattern is `dataset/*`, not `dataset/` — git cannot re-include a file whose
+#  parent directory is itself excluded, so the negation below would not apply)
+dataset/*
+!dataset/README.md
+
+# Built corpus and any other derived data (per-subject .npz, cached features)
+project/data/
+*.npz
+*.npy
+*.h5
+*.hdf5
+*.pkl
+*.joblib
+
+# Model checkpoints and run outputs
+*.pt
+*.pth
+*.ckpt
+runs/
+logs/
+outputs/
+checkpoints/
+wandb/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+.installed.cfg
+MANIFEST
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# ── Jupyter ──────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+profile_default/
+ipython_config.py
+
+# ── LaTeX build artefacts (keep .tex, .bib, figures and the compiled PDF) ─────
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.lot
+*.nav
+*.out
+*.snm
+*.synctex.gz
+*.toc
+*.xdv
+*.log
+!**/figures/*.pdf
+!**/compiled paper.pdf
+
+# ── Office / OS cruft ────────────────────────────────────────────────────────
+~$*
+*.tmp
+*.bak
+*.swp
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ── Editors ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
