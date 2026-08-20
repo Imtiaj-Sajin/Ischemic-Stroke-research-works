@@ -7,6 +7,10 @@ For the 7-channel montage [C4:M1, C3:M2, O2:M1, O1:M2, E1:M2, E2:M2, EMG]:
              slow-wave peak-to-peak (delta 0.5-4 Hz)   -> N2 / N3 discriminators
   EOG (4-5): eye-movement energy (derivative power)     -> REM / Wake
   EMG (6)  : tonic level (log-RMS, high percentile)      -> REM atonia / Wake
+
+extract_features_v2(x) -> [n, 188] is the per-epoch representation handed to the
+modelling half; temporal_context(F, 3) -> [n, 1316] is the contextual vector the
+classical prior consumes.
 """
 import numpy as np
 from scipy.signal import butter, sosfiltfilt, hilbert
@@ -55,14 +59,51 @@ def extract_features_v2(x, fs=100):
     return np.concatenate([Fb, Fe], axis=1), nb + ne
 
 
+def temporal_context(F, k=3):
+    """Concatenate each epoch's feature vector with its +/-k neighbours.
+
+    AASM scoring is contextual by definition -- a REM period continues until
+    specific evidence ends it, and N1 is defined relative to what precedes it --
+    so an isolated epoch has thrown away the rules that decide its own label.
+    Edges are padded by repeating the first/last epoch rather than by zeros, so
+    the first and last epochs of a night stay in-distribution instead of being
+    handed a feature vector no real epoch could produce.
+
+    With the 188-dim vector and k=3 this is the 1316-dim input the classical
+    prior consumes: 188 x (2*3 + 1).
+
+    Parameters
+    ----------
+    F : ndarray [n_epochs, n_features]
+        Per-epoch features, in recording order, for ONE subject. Never call this
+        across concatenated subjects -- it would splice one patient's night onto
+        another's and leak across cross-validation folds.
+    k : int
+        Neighbours on each side. Default 3 = three minutes of context.
+
+    Returns
+    -------
+    ndarray [n_epochs, n_features * (2k + 1)]
+    """
+    F = np.asarray(F)
+    if F.ndim != 2:
+        raise ValueError(f"expected [n_epochs, n_features], got {F.shape}")
+    idx = np.clip(np.arange(len(F))[:, None] + np.arange(-k, k + 1)[None, :],
+                  0, len(F) - 1)
+    return F[idx].reshape(len(F), -1)
+
+
 if __name__ == "__main__":
-    import os, sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from datasets import load_subject  # noqa
-    d = np.load(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                             "data", "processed7", "SN1.npz"), allow_pickle=True)
-    x = d["x"].astype(np.float32)
+    # Smoke test against a built subject: 161 base + 27 event = 188, then 1316
+    # with +/-3 epochs of context. Run build_npz_full.py first if absent.
+    npz = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       "data", "processed7", "SN1.npz")
+    if not os.path.exists(npz):
+        raise SystemExit(f"no built corpus at {npz} -- run first: "
+                         "python build_npz_full.py --raw <dataset dir>")
+    x = np.load(npz, allow_pickle=True)["x"].astype(np.float32)
     F, names = extract_features_v2(x)
-    print("x", x.shape, "-> features", F.shape, f"({len(names)} total; base + {len([n for n in names if 'spindle' in n or 'sw_' in n or 'eog' in n or 'emg' in n])} event)")
     ev = [n for n in names if any(k in n for k in ("spindle", "sw_", "eog", "emg"))]
+    print("x", x.shape, "-> features", F.shape, f"({len(names)} total, {len(ev)} event)")
     print("event features:", ev)
+    print("with +/-3 context:", temporal_context(F, 3).shape)

@@ -3,7 +3,7 @@ features.py — per-epoch hand-crafted EEG features for classical ML staging.
 
 extract_features(x, fs) : x [n, C, 3000] -> feats [n, C*F_per_ch], plus names.
 Per channel: band powers (abs+rel), total power, spectral entropy, spectral edge,
-mean/peak freq, time-domain (std, ptp, rms, skew, kurtosis, zero-cross rate),
+mean freq, time-domain (std, ptp, rms, skew, kurtosis, zero-cross rate),
 Hjorth (activity, mobility, complexity). All vectorised over epochs.
 """
 import numpy as np
@@ -68,10 +68,16 @@ def extract_features(x, fs=100):
 
 
 if __name__ == "__main__":
-    import sys, os
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from datasets import load_subject
-    x, y = load_subject(1, normalize=False)
+    # Smoke test against a built subject: 23 features per channel, 161 for the
+    # 7-channel montage. Run build_npz_full.py first if the corpus is absent.
+    import os
+    npz = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       "data", "processed7", "SN1.npz")
+    if not os.path.exists(npz):
+        raise SystemExit(f"no built corpus at {npz} -- run first: "
+                         "python build_npz_full.py --raw <dataset dir>")
+    x = np.load(npz, allow_pickle=True)["x"].astype(np.float32)
     F, names = extract_features(x)
-    print("x:", x.shape, "-> feats:", F.shape, f"({len(names)} names, {F.shape[1]//x.shape[1]}/channel)")
+    print("x:", x.shape, "-> feats:", F.shape,
+          f"({len(names)} names, {F.shape[1] // x.shape[1]}/channel)")
     print("sample names:", names[:6], "...", names[-3:])
