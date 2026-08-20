@@ -31,7 +31,8 @@ sys.path.insert(0, HERE)
 
 import mne  # noqa: E402
 from staging_preprocess import StagingPreprocess  # noqa: E402
-from channel_mapping import CHANNEL_MAPPING, LABEL_MAPPING  # noqa: E402
+from channel_mapping import (CHANNEL_MAPPING, LABEL_MAPPING,  # noqa: E402
+                             REF_RENAME_EEG, harmonise_rename)
 
 warnings.simplefilter("ignore")
 mne.set_log_level("ERROR")
@@ -40,10 +41,24 @@ COMMON_EEG = ["C4:M1", "C3:M2", "O2:M1", "O1:M2"]  # fixed order, all subjects
 # Some subjects reference EEG to ear electrodes (A1/A2) rather than mastoids (M1/M2).
 # A1/A2 and M1/M2 are near-identical locations, so harmonise the names (as the official
 # numpy_subjects.py does) — otherwise ~36/60 of the Figshare cohort is silently dropped.
-REF_RENAME = {"C4:A1": "C4:M1", "C3:A2": "C3:M2", "O2:A1": "O2:M1", "O1:A2": "O1:M2"}
+# The rename map itself lives in channel_mapping.py so this EEG-only variant and the
+# 7-channel build_npz_full.py cannot drift apart. REF_RENAME_EEG is the 4-EEG subset.
 WINDOW_SIZE = 30.0
 SFREQ = 100
 SAMPLES = int(WINDOW_SIZE * SFREQ)  # 3000
+
+
+def shortpath(p):
+    """Path relative to the cwd for readable logs, absolute if that is not possible.
+
+    Windows raises when the target is on a different drive from the working
+    directory, which would otherwise crash the run at the very end -- after
+    every subject has already been built.
+    """
+    try:
+        return os.path.relpath(p)
+    except ValueError:
+        return os.path.abspath(p)
 
 
 def process_subject(edf_path, ann_path, channels):
@@ -57,7 +72,7 @@ def process_subject(edf_path, ann_path, channels):
         drop_last=True, drop_bad=True,
     )
     # harmonise A1/A2-referenced names to M1/M2 (only when target name is absent)
-    rmap = {a: b for a, b in REF_RENAME.items() if a in epochs.ch_names and b not in epochs.ch_names}
+    rmap = harmonise_rename(epochs.ch_names, REF_RENAME_EEG)
     if rmap:
         epochs.rename_channels(rmap)
     # restrict to the fixed common montage, in a fixed order
@@ -111,7 +126,7 @@ def main():
         summary.append((sn, len(y), binc))
         print(f"[ok] {sn}: {len(y):4d} epochs  "
               f"W{binc[0]} N1:{binc[1]} N2:{binc[2]} N3:{binc[3]} R{binc[4]}  "
-              f"-> {os.path.relpath(out)}")
+              f"-> {shortpath(out)}")
 
     if summary:
         tot = sum(n for _, n, _ in summary)
