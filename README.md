@@ -10,7 +10,9 @@ data-processing pipeline that prepares the recordings.
 > Dept. of Computer Science and Engineering, American International University–Bangladesh.
 
 ---
-
+Check the FINAL_SUBMISSION Folder regarding the paper, contribution, review, revision, and reproductibility.
+and my (Imtiaj Sajin's) all contribuitions in the code is here: [project/processing](https://github.com/Imtiaj-Sajin/Ischemic-Stroke-research-works/tree/main/project/processing) ]
+---
 ## The problem
 
 Automated sleep staging works well on healthy sleepers, but it degrades sharply after focal brain
