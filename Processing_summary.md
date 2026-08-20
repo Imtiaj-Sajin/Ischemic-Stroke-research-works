@@ -88,6 +88,13 @@ What I gave my teammates:
 They built everything downstream: the graph network, the state-space decoder, the HMM smoothing,
 the evaluation. **Know the boundary — don't claim their part, and don't undersell yours.**
 
+And the contract is enforced, not just documented — `pytest` at the repo root runs 62 tests in
+about a second, on synthetic signals, with no recordings needed. They check the numbers above
+(23 per channel, 161 + 27 = 188, 1316 with context), that the montage rename really does recover
+an A1/A2 subject onto the M1/M2 montage, and that the features respond to the physiology they
+claim to measure — spindles, slow waves, eye movements, atonia. If a teammate or an examiner
+wants to know whether my half still holds, that is the one command to run.
+
 ---
 
 ## Numbers to remember

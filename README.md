@@ -100,7 +100,9 @@ processing stage is documented here in its own right.
 │   │   ├── features_v2.py              #  27 physiological-event features (+ combined 188)
 │   │   └── numpy_subjects.py           #  per-epoch file combiner (reference)
 │   └── data/                           # built corpus — git-ignored, regenerated locally
+├── tests/                               # contract, physiology and annotation tests (pytest)
 ├── dataset/                            # raw iSLEEPS recordings — git-ignored (see its README)
+├── requirements.txt                     # pinned-minimum runtime + test dependencies
 └── Processing_summary.md               # plain-language overview of the processing stage
 ```
 
@@ -148,7 +150,7 @@ Sleep-EDF corpus (PhysioNet), used only for the healthy→stroke domain-gap expe
 
 ```bash
 # 1. dependencies
-pip install numpy scipy pandas mne scikit-learn matplotlib openpyxl jupyter
+pip install -r requirements.txt
 
 # 2. fetch the open subset into dataset/  (instructions in dataset/README.md)
 
@@ -160,6 +162,36 @@ jupyter notebook project/processing/iSLEEPS_preprocessing.ipynb
 ```
 
 The pipeline discovers whatever subjects are present, so it runs on the open 40 or the full 100.
+
+## Verifying the pipeline
+
+The processing stage makes claims the rest of the paper rests on: 23 features per
+channel, 161 base plus 27 event equals 188, 1316 with context, five AASM stages, a
+seven-channel montage, and a rename that recovers subjects recorded under the
+earlobe convention. Those are checkable, so they are checked.
+
+```bash
+pytest        # 62 tests, about a second
+```
+
+The suite runs on synthetic signals -- no recordings, no download -- so it works on
+a clean checkout:
+
+| Suite | What it holds down |
+|---|---|
+| `tests/test_contract.py` | The dimensionality the manuscript quotes, the label map, the montage, and that permuting input channels only permutes feature columns -- so channel *c* cannot come to mean different electrodes for different subjects. |
+| `tests/test_physiology.py` | That the features measure what they claim: the sigma feature responds to spindles and not to slow waves, the delta feature the reverse, the EOG feature to eye movements, the EMG feature to atonia. Shape checks pass on garbage; these do not. |
+| `tests/test_annotations.py` | Vendor-workbook decoding: stage renaming, the 30-second onset grid, and non-AASM tokens being dropped rather than guessed. |
+
+One test, `test_shipped_parser_drops_the_first_scored_epoch`, asserts a known
+**defect** rather than correct behaviour. The annotation slice discards the first
+scored epoch, which slides every remaining label one epoch earlier against the
+signal. It is left in place deliberately: every number in the paper was produced
+under this alignment, so re-aligning the corpus quietly would make our own
+published results irreproducible. Read our scores as a lower bound. The fix is a
+one-character change, it is the first item for the next revision, and when it
+lands that test fails on purpose -- as the reminder to rebuild the corpus and
+re-run the study.
 
 ## Contributions
 
