@@ -148,6 +148,16 @@ The raw recordings are ~7.3 GB and are **not** committed to git. See
 Sleep-EDF corpus (PhysioNet), used only for the healthy→stroke domain-gap experiment, is at
 <https://physionet.org/content/sleep-edfx/>.
 
+## Environment and hardware
+
+The saved notebook was executed with **Python 3.11.3**, `numpy 2.2.6`, `scipy 1.15.3`,
+`pandas 3.0.3`, `mne 1.12.1`, `scikit-learn 1.6.1`, `matplotlib 3.11.0` (see
+`requirements.txt` for the minimum-supported versions; 3.10–3.12 are all fine). The
+entire pipeline — EDF parsing, feature extraction, and the patient-exclusive
+sanity-check classifier — runs on **CPU only**; no GPU is required or used. On a
+single machine it processes one subject in a few seconds and the full open-40-subject
+corpus in low single-digit minutes; the notebook prints per-stage timings as it runs.
+
 ## Getting started
 
 ```bash
@@ -194,6 +204,28 @@ published results irreproducible. Read our scores as a lower bound. The fix is a
 one-character change, it is the first item for the next revision, and when it
 lands that test fails on purpose -- as the reminder to rebuild the corpus and
 re-run the study.
+
+## Results traceability
+
+Every number this pipeline is responsible for maps to a checked location:
+
+| Claim | Where it's produced | Where it's checked |
+|---|---|---|
+| 188 features/epoch (161 base + 27 event), 1316 with context | `features.py`, `features_v2.py`, notebook §8–9 | `tests/test_contract.py`, `tests/test_physiology.py` |
+| 7-channel montage, A1/A2→M1/M2 harmonisation, 39→99 subjects | `build_npz_full.py`, notebook §3 | `tests/test_contract.py` |
+| Annotation decoding, 30 s grid, non-AASM token dropping | `staging_preprocess.py`, notebook §2 | `tests/test_annotations.py` |
+| SN28≡SN15 duplicate, N=99 not 100 | notebook §7 (integrity audit) | printed fingerprint check, re-run each execution |
+| iSLEEPS stage distribution (Table 1, HAG-Net paper) | notebook §7 | recomputed live from the built corpus |
+
+**MM-Net paper (Tables I, II, VII; Figures 4–10).** This author is also credited with
+the cardiorespiratory feature set, the respiratory-baseline detectors, and these
+result figures in that paper's contributions record. The feature/baseline source is
+mirrored in [`project/processing/mmnet_extension/`](project/processing/mmnet_extension/)
+with a provenance note; the figure-generation scripts and the feature/result cache
+they read from are part of the main project repository
+([`wshuv-o/isleeps-sleep-staging`](https://github.com/wshuv-o/isleeps-sleep-staging)),
+consistent with that repository holding every training run (see its own README on
+why one committer executed all GPU runs).
 
 ## Contributions
 
